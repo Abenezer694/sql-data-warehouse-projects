@@ -1,0 +1,40 @@
+/*
+
+======================================================================================================
+Quality checks
+======================================================================================================
+
+Script purpose :
+This scripts performs various checks for data consistency, accuracy,
+and standrization acrosss the 'silver' schema. It includes check for:
+  - NULL or duplicates primary keys
+  - Unwanted spces in string values
+  - Data standrization and consistency
+ - Invalid dates range and orders
+ - Data consistency between related files
+
+usage notes:
+  - Run these checks after loading silver layers
+  - Investigate and resolves any disperancies found in checks
+
+======================================================================================================
+*/
+
+-----Identidy out of range order
+SELECT DISTINCT
+BDATE
+FROM bronze.erp_CUST_AZ12
+WHERE BDATE < '1924-01-01' OR bdate > GETDATE()
+----- DATA standrilazation & consistency
+SELECT DISTINCT gen,
+CASE WHEN UPPER(TRIM(gen)) IN ('F','FEMALE') THEN 'FEMALE'
+     WHEN UPPER(TRIM(gen)) IN ('M','MALE') THEN 'MALE'
+     ELSE 'n/a'
+END AS gen
+FROM bronze.erp_CUST_AZ12
+
+SELECT * FROM silver.erp_CUST_AZ12
+----- Data stadrilization and consistency ------
+SELECT DISTINCT cntry
+FROM bronze.erp_LOC_A101
+ORDER BY cntry
