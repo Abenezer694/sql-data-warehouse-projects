@@ -1,0 +1,12 @@
+Gold dimension customers
+
+Purpose : To identify the business organizations for the customers
+
+customer_key: A surrogate key generated (often via ROW_NUMBER() or similar) to uniquely identify each customer in the Gold Layer 
+customer_id: The business identifier from the source system (e.g., CRM)
+customer_number: An alternative identifier (e.g., cst_key)
+first_name / last_name: Customer names from CRM
+country: Customer’s country from ERP or CRM
+marital_status / gender: Demographic attributes, with gender derived from CRM first, falling back to ERP if needed
+birthdate: Date of birth from ERP
+create_date: When the customer record was created
