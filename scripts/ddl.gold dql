@@ -1,0 +1,71 @@
+/ * =======================================================================
+     DDL SCript : CREATE GOLD VIEWS
+==========================================================================
+purpose : The script create views for the gold layer in the data warehose.
+The gold layer repersent the final dimensions and the final fact.
+
+
+Each view perform transformations and combines data from the silver layer
+to produce a clean, enriched and buisness ready data sets
+
+usage:
+  - These views can be querelled directly for analytics and reporting.
+========================================================================================
+*/
+CREATE VIEW gold.crm_load AS 
+SELECT
+ROW_NUMBER() OVER (ORDER BY cst_id) AS customer_key,
+ci.cst_id AS customer_id,
+ci.cst_key AS customer_number,
+COALESCE(ci.cst_firstname,'n/a')  customer_firstname,
+COALESCE(ci.cst_LastName, 'n/a')  customer_lastname,
+COALESCE(lo.CNTRY,'n/a') AS country,
+ci.cst_martial_status AS customer_maritial_status,
+ci.cst_create_date AS customer_create_date,
+CASE WHEN cst_gender != 'n/a' THEN cst_gender  ----- CRM is the main source of the data
+      ELSE COALESCE(ca.gen,'n/a')
+END AS  gender,
+ca.BDATE AS birthdate
+FROM silver.crm_cust_info ci
+LEFT JOIN silver.erp_CUST_AZ12 ca
+ON ci.cst_key = ca.cid
+LEFT JOIN silver.erp_LOC_A101 lo
+ON ci.cst_key = lo.CIC
+
+CREATE VIEW gold.dimension AS 
+SELECT
+ROW_NUMBER() OVER (ORDER BY pn.prd_start_dt,pn.prdt_sa) Productkeys,
+pn.prdt_id AS prdouct_id,
+pn.prdt_sa AS product_number,
+pn.cat_id AS category_id,
+G.CAT AS category,
+G.SUBCAT AS subcategory,
+G.MAINTENANCE,
+pn.prd_cost AS product_cost,
+pn.prd_line AS product_line,
+pn.prd_start_dt AS product_start_date
+FROM silver.crm_prdt_info pn
+LEFT JOIN silver.erp_PX_CAT_G1V2 G
+ON G.id = pn.cat_id
+WHERE prd_end_dt IS NULL ---- Filtering data
+
+CREATE VIEW gold.crm_load AS 
+SELECT
+ROW_NUMBER() OVER (ORDER BY cst_id) AS customer_key,
+ci.cst_id AS customer_id,
+ci.cst_key AS customer_number,
+COALESCE(ci.cst_firstname,'n/a')  customer_firstname,
+COALESCE(ci.cst_LastName, 'n/a')  customer_lastname,
+COALESCE(lo.CNTRY,'n/a') AS country,
+ci.cst_martial_status AS customer_maritial_status,
+ci.cst_create_date AS customer_create_date,
+CASE WHEN cst_gender != 'n/a' THEN cst_gender  ----- CRM is the main source of the data
+      ELSE COALESCE(ca.gen,'n/a')
+END AS  gender,
+ca.BDATE AS birthdate
+FROM silver.crm_cust_info ci
+LEFT JOIN silver.erp_CUST_AZ12 ca
+ON ci.cst_key = ca.cid
+LEFT JOIN silver.erp_LOC_A101 lo
+ON ci.cst_key = lo.CIC
+
