@@ -1,0 +1,65 @@
+IF object_id ('gold.products','V') is not null
+DROP VIEW gold.products
+CREATE VIEW gold.products as
+------ Build a report in the products -------------------
+
+WITH product_reports AS (
+SELECT
+f.order_number,
+f.order_date,
+f.product_key,
+f.sales_amount,
+f.quantity,
+p.product_name,
+p.category,
+p.subcategory,
+p.cost
+FROM gold.fact_sales F
+LEFT JOIN gold.dim_products p
+ON p.product_key = F.product_key
+WHERE order_date IS NOT NULL
+)
+,product_regression_analysis AS (
+SELECT
+product_key,
+product_name,
+category,
+subcategory,
+cost,
+COUNT(DISTINCT order_number) AS Total_orders,
+SUM(sales_amount) AS Total_sales,
+SUM(quantity) AS Total_quantity,
+DATEDIFF(month,MIN(order_date),MAX(order_date)) AS Lifespan,
+MAX(order_date) AS Last_order_date
+FROM product_reports
+GROUP BY product_key,
+         product_name,
+        category,
+        subcategory,
+         cost
+)
+SELECT
+product_key,
+product_name,
+category,
+subcategory,
+cost,
+Total_orders,
+Total_sales,
+Total_quantity,
+Lifespan,
+Last_order_date,
+CASE WHEN Total_sales > 5000 then 'high perfomer'
+     WHEN Total_sales >= 1000 then 'mid perfomer'
+     ELSE 'Low perfomer'
+     END AS product_segment,
+     ROUND(CAST(Total_sales AS FLOAT) / NULLIF(Total_quantity,0),1) AS avg_selling_price,
+     ------ average order month -----
+     CASE WHEN Total_orders = 0 then 0
+          ELSE Total_sales / Total_orders
+          END AS avg_order_month,
+   ---------- Average monthly revenue
+   CASE WHEN Lifespan = 0 then 0
+        ELSE Total_sales / Lifespan
+        END AS avg_month_revenue
+        FROM product_regression_analysis
