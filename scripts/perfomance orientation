@@ -1,0 +1,33 @@
+---------- Analyse the yearly perfomance of the produts by comparing each products' sales to both its average sales perfomance and the pervious year 
+------------ perfomance
+WITH yearly_product_sales AS (
+SELECT
+YEAR(f.order_date) AS order_year,
+p.product_name,
+SUM(f.sales_amount) AS current_sales
+FROM gold.fact_sales f
+LEFT JOIN gold.dim_products p
+ON f.product_key = p.product_key
+WHERE order_date is not null
+GROUP BY YEAR(f.order_date),
+         p.product_name
+
+)
+SELECT
+order_year,
+product_name,
+current_sales,
+AVG(current_sales) OVER (partition by product_name) AS Avg_sales,
+current_sales - AVG(current_sales) OVER (partition by product_name) AS perfomance_unity,
+CASE WHEN current_sales - AVG(current_sales) OVER (partition by product_name) > 0 then 'good perfomance'
+      WHEN current_sales - AVG(current_sales) OVER (partition by product_name) < 0 then 'bad perfomance'
+      ELSE 'average'
+      END AS perfomance_ability,
+LAG(current_sales) OVER (PARTITION BY Product_name order by order_year) AS past_sales,
+current_sales - LAG(current_sales) OVER (PARTITION BY Product_name order by order_year) AS perfomance_unity2,
+CASE WHEN current_sales - LAG(current_sales) OVER (PARTITION BY Product_name order by order_year)>0 then 'best'
+      WHEN current_sales - LAG(current_sales) OVER (PARTITION BY Product_name order by order_year) < 0 then 'worst'
+      ELSE 'average'
+      END AS perfomance_ability2
+FROM yearly_product_sales
+ORDER BY order_year, product_name
